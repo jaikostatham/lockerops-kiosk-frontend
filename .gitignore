@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.quasar/
+.vite/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+coverage/
+dev-server.*.log
+.DS_Store
+Thumbs.db
+*.log
