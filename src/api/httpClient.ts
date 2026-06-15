@@ -16,9 +16,16 @@ export const httpClient = axios.create({
   },
 });
 
-export function getApiErrorMessage(error: unknown): string {
+export function getApiErrorMessage(
+  error: unknown,
+  statusMessages: Partial<Record<number, string>> = {},
+): string {
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
+
+    if (status && statusMessages[status]) {
+      return statusMessages[status];
+    }
 
     if (status === 404) {
       return i18n.global.t('apiErrors.notFound');

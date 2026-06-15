@@ -8,6 +8,7 @@ import { getCompartmentSizeLabelKey } from '@/utils/lockerLabels';
 
 const props = defineProps<{
   compartment: LockerCompartment;
+  displayNumber?: number;
 }>();
 
 const emit = defineEmits<{
@@ -18,6 +19,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const blockedFlash = ref(false);
 const isAvailable = computed(() => props.compartment.status === 'AVAILABLE');
+const displayCompartmentNumber = computed(
+  () => props.displayNumber ?? props.compartment.compartmentNumber,
+);
 const sizeLabel = computed(() =>
   t(getCompartmentSizeLabelKey(props.compartment.size)),
 );
@@ -60,7 +64,7 @@ function handlePress(): void {
 
     <div class="compartment-card__content">
       <span class="compartment-card__number">
-        {{ compartment.compartmentNumber }}
+        {{ displayCompartmentNumber }}
       </span>
       <span class="compartment-card__size">{{ sizeLabel }}</span>
       <StatusBadge :status="compartment.status" domain="compartment" />

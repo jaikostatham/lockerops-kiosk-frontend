@@ -43,6 +43,11 @@ const availableCount = computed(
   () => compartments.value.filter((item) => item.status === 'AVAILABLE').length,
 );
 const totalCount = computed(() => compartments.value.length);
+const hasDuplicateCompartmentNumbers = computed(() => {
+  const numbers = compartments.value.map((item) => item.compartmentNumber);
+
+  return new Set(numbers).size !== numbers.length;
+});
 
 function sortCompartmentsBySize(
   compartmentItems: LockerCompartment[],
@@ -158,9 +163,14 @@ onMounted(() => {
           :aria-label="t('compartments.gridAria')"
         >
           <CompartmentCard
-            v-for="compartment in compartments"
+            v-for="(compartment, index) in compartments"
             :key="compartment.id"
             :compartment="compartment"
+            :display-number="
+              hasDuplicateCompartmentNumbers
+                ? index + 1
+                : compartment.compartmentNumber
+            "
             @select="openCompartment"
             @blocked="showBlockedFeedback"
           />
