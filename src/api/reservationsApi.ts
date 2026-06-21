@@ -1,13 +1,14 @@
 import { httpClient } from './httpClient';
 import type {
   CreateReservationRequest,
+  KioskReservation,
   Reservation,
 } from '@/types/reservation';
 
 export async function createReservation(
   payload: CreateReservationRequest,
-): Promise<Reservation> {
-  const response = await httpClient.post<Reservation>(
+): Promise<KioskReservation> {
+  const response = await httpClient.post<KioskReservation>(
     '/api/reservations',
     payload,
   );

@@ -11,7 +11,7 @@ import ErrorState from '@/components/ErrorState.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import type { LockerCompartment } from '@/types/lockerCompartment';
-import type { Reservation } from '@/types/reservation';
+import type { KioskReservation } from '@/types/reservation';
 import {
   getCompartmentSizeLabelKey,
   getCompartmentStatusLabelKey,
@@ -31,7 +31,7 @@ const errorMessage = ref('');
 const selectedDuration = ref<number>(60);
 const reservationState = ref<ReservationState>('idle');
 const reservationErrorMessage = ref('');
-const reservation = ref<Reservation | null>(null);
+const reservation = ref<KioskReservation | null>(null);
 
 const compartmentId = computed(() => Number(route.params.compartmentId));
 const title = computed(() =>
@@ -85,6 +85,16 @@ async function loadCompartment(): Promise<void> {
 
 function goBack(): void {
   void router.push(backTo.value);
+}
+
+function openAccessCodeScreen(): void {
+  void router.push({
+    name: 'access-code',
+    query: {
+      ticketCode: reservation.value?.ticketCode || undefined,
+      accessCode: reservation.value?.accessCode || undefined,
+    },
+  });
 }
 
 function buildCustomerReference(): string {
@@ -193,11 +203,23 @@ onMounted(() => {
             <div class="reservation-grid">
               <div>
                 <span>{{ t('reservation.id') }}</span>
-                <strong>{{ reservation.id }}</strong>
+                <strong>{{ reservation.reservationId }}</strong>
               </div>
               <div>
                 <span>{{ t('reservation.reference') }}</span>
                 <strong>{{ reservation.reservationReference }}</strong>
+              </div>
+              <div>
+                <span>{{ t('reservation.ticketCode') }}</span>
+                <strong class="reservation-grid__code">
+                  {{ reservation.ticketCode }}
+                </strong>
+              </div>
+              <div>
+                <span>{{ t('reservation.accessCode') }}</span>
+                <strong class="reservation-grid__access-code">
+                  {{ reservation.accessCode }}
+                </strong>
               </div>
               <div>
                 <span>{{ t('reservation.lockerNumber') }}</span>
@@ -205,7 +227,9 @@ onMounted(() => {
               </div>
               <div>
                 <span>{{ t('reservation.status') }}</span>
-                <strong>{{ t(`reservationStatuses.${reservation.status}`) }}</strong>
+                <strong>
+                  {{ t(`reservationStatuses.${reservation.reservationStatus}`) }}
+                </strong>
               </div>
               <div>
                 <span>{{ t('reservation.reservedFrom') }}</span>
@@ -279,6 +303,16 @@ onMounted(() => {
               @click="goBack"
             />
             <q-btn
+              v-if="reservationState === 'success'"
+              unelevated
+              color="primary"
+              icon-right="password"
+              :label="t('accessCode.openValidation')"
+              class="touch-button touch-button--primary"
+              @click="openAccessCodeScreen"
+            />
+            <q-btn
+              v-else
               unelevated
               color="primary"
               icon-right="event_available"
@@ -287,9 +321,7 @@ onMounted(() => {
                   ? t('reservation.confirming')
                   : t('reservation.confirm')
               "
-              :disable="
-                !canCreateReservation || reservationState === 'success'
-              "
+              :disable="!canCreateReservation"
               :loading="reservationState === 'submitting'"
               class="touch-button touch-button--primary"
               @click="confirmReservation"
