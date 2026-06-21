@@ -29,6 +29,26 @@ function getResponseMessage(data: unknown): string {
   return '';
 }
 
+function getResponseCode(data: unknown): number | string | undefined {
+  if (data && typeof data === 'object' && 'code' in data) {
+    const code = data.code;
+
+    if (typeof code === 'number' || typeof code === 'string') {
+      return code;
+    }
+  }
+
+  return undefined;
+}
+
+export function getApiErrorCode(error: unknown): number | string | undefined {
+  if (axios.isAxiosError(error)) {
+    return getResponseCode(error.response?.data);
+  }
+
+  return undefined;
+}
+
 export function getApiErrorMessage(
   error: unknown,
   statusMessages: Partial<Record<number, string>> = {},
