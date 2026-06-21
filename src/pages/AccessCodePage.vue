@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+import { getLockerCompartment } from '@/api/lockerCompartmentsApi';
 import { validateAccessCode } from '@/api/accessCodesApi';
-import { getApiErrorMessage } from '@/api/httpClient';
+import { getApiErrorCode, getApiErrorMessage } from '@/api/httpClient';
 import AppHeader from '@/components/AppHeader.vue';
 import type { AccessCodeValidationResult } from '@/types/accessCode';
+import type { LockerCompartment } from '@/types/lockerCompartment';
+import { isPastDateTime } from '@/utils/dateTime';
 
 type ValidationState = 'idle' | 'submitting' | 'success' | 'error';
 
@@ -19,6 +22,9 @@ const accessCode = ref(String(route.query.accessCode || ''));
 const validationState = ref<ValidationState>('idle');
 const validationErrorMessage = ref('');
 const validationResult = ref<AccessCodeValidationResult | null>(null);
+const validatedCompartment = ref<LockerCompartment | null>(null);
+const currentTimestamp = ref(Date.now());
+let currentTimeIntervalId: number | undefined;
 
 const normalizedTicketCode = computed(() => ticketCode.value.trim());
 const normalizedAccessCode = computed(() => accessCode.value.trim());
@@ -27,6 +33,11 @@ const canValidate = computed(
     normalizedTicketCode.value.length > 0 &&
     normalizedAccessCode.value.length > 0 &&
     validationState.value !== 'submitting',
+);
+const isValidationExpired = computed(
+  () =>
+    validationResult.value !== null &&
+    isPastDateTime(validationResult.value.reservedUntil, currentTimestamp.value),
 );
 
 function goHome(): void {
@@ -54,18 +65,45 @@ async function submitCode(): Promise<void> {
   validationState.value = 'submitting';
   validationErrorMessage.value = '';
   validationResult.value = null;
+  validatedCompartment.value = null;
 
   try {
-    validationResult.value = await validateAccessCode({
+    const result = await validateAccessCode({
       ticketCode: normalizedTicketCode.value,
       accessCode: normalizedAccessCode.value,
     });
+
+    validationResult.value = result;
+
+    try {
+      validatedCompartment.value = await getLockerCompartment(
+        result.lockerCompartmentId,
+      );
+    } catch {
+      validatedCompartment.value = null;
+    }
+
     validationState.value = 'success';
   } catch (error) {
-    validationErrorMessage.value = getApiErrorMessage(error);
+    validationErrorMessage.value =
+      String(getApiErrorCode(error)) === '5102'
+        ? t('accessCode.errors.expired')
+        : getApiErrorMessage(error);
     validationState.value = 'error';
   }
 }
+
+onMounted(() => {
+  currentTimeIntervalId = window.setInterval(() => {
+    currentTimestamp.value = Date.now();
+  }, 15000);
+});
+
+onBeforeUnmount(() => {
+  if (currentTimeIntervalId) {
+    window.clearInterval(currentTimeIntervalId);
+  }
+});
 </script>
 
 <template>
@@ -123,11 +161,28 @@ async function submitCode(): Promise<void> {
 
           <section
             v-if="validationState === 'success' && validationResult"
-            class="access-result access-result--success"
+            :class="[
+              'access-result',
+              isValidationExpired
+                ? 'access-result--expired'
+                : 'access-result--success',
+            ]"
             aria-live="polite"
           >
-            <p class="screen-kicker">{{ t('accessCode.grantedKicker') }}</p>
-            <h3>{{ t('accessCode.grantedTitle') }}</h3>
+            <p class="screen-kicker">
+              {{
+                isValidationExpired
+                  ? t('accessCode.expiredKicker')
+                  : t('accessCode.grantedKicker')
+              }}
+            </p>
+            <h3>
+              {{
+                isValidationExpired
+                  ? t('accessCode.expiredTitle')
+                  : t('accessCode.grantedTitle')
+              }}
+            </h3>
             <div class="reservation-grid">
               <div>
                 <span>{{ t('reservation.ticketCode') }}</span>
@@ -144,6 +199,14 @@ async function submitCode(): Promise<void> {
               <div>
                 <span>{{ t('reservation.reservedUntil') }}</span>
                 <strong>{{ formatDateTime(validationResult.reservedUntil) }}</strong>
+              </div>
+              <div v-if="validatedCompartment">
+                <span>{{ t('accessCode.compartmentStatus') }}</span>
+                <strong>
+                  {{
+                    t(`compartmentStatuses.${validatedCompartment.status}`)
+                  }}
+                </strong>
               </div>
               <div>
                 <span>{{ t('accessCode.validatedAt') }}</span>

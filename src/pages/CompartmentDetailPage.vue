@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -16,6 +16,7 @@ import {
   getCompartmentSizeLabelKey,
   getCompartmentStatusLabelKey,
 } from '@/utils/lockerLabels';
+import { isPastDateTime } from '@/utils/dateTime';
 
 type LoadState = 'loading' | 'ready' | 'error';
 type ReservationState = 'idle' | 'submitting' | 'success' | 'error';
@@ -32,6 +33,8 @@ const selectedDuration = ref<number>(60);
 const reservationState = ref<ReservationState>('idle');
 const reservationErrorMessage = ref('');
 const reservation = ref<KioskReservation | null>(null);
+const currentTimestamp = ref(Date.now());
+let currentTimeIntervalId: number | undefined;
 
 const compartmentId = computed(() => Number(route.params.compartmentId));
 const title = computed(() =>
@@ -60,6 +63,23 @@ const isAvailable = computed(
 const canCreateReservation = computed(
   () => isAvailable.value && reservationState.value !== 'submitting',
 );
+const displayedReservationStatus = computed(() => {
+  if (!reservation.value) {
+    return null;
+  }
+
+  if (
+    reservation.value.reservationStatus === 'EXPIRED' ||
+    isPastDateTime(reservation.value.reservedUntil, currentTimestamp.value)
+  ) {
+    return 'EXPIRED';
+  }
+
+  return reservation.value.reservationStatus;
+});
+const isReservationExpired = computed(
+  () => displayedReservationStatus.value === 'EXPIRED',
+);
 
 async function loadCompartment(): Promise<void> {
   if (!Number.isFinite(compartmentId.value) || compartmentId.value <= 0) {
@@ -80,6 +100,30 @@ async function loadCompartment(): Promise<void> {
   } catch (error) {
     errorMessage.value = getApiErrorMessage(error);
     loadState.value = 'error';
+  }
+}
+
+async function refreshCompartment(): Promise<void> {
+  if (!Number.isFinite(compartmentId.value) || compartmentId.value <= 0) {
+    return;
+  }
+
+  try {
+    compartment.value = await getLockerCompartment(compartmentId.value);
+  } catch {
+    // Keep the current screen stable; explicit loading errors are handled by loadCompartment.
+  }
+}
+
+function refreshActiveCompartment(): void {
+  if (loadState.value === 'ready') {
+    void refreshCompartment();
+  }
+}
+
+function handleVisibilityChange(): void {
+  if (!document.hidden) {
+    refreshActiveCompartment();
   }
 }
 
@@ -148,6 +192,26 @@ async function confirmReservation(): Promise<void> {
 
 onMounted(() => {
   void loadCompartment();
+  currentTimeIntervalId = window.setInterval(() => {
+    currentTimestamp.value = Date.now();
+  }, 15000);
+  window.addEventListener('focus', refreshActiveCompartment);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+});
+
+onBeforeUnmount(() => {
+  if (currentTimeIntervalId) {
+    window.clearInterval(currentTimeIntervalId);
+  }
+
+  window.removeEventListener('focus', refreshActiveCompartment);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+});
+
+watch(isReservationExpired, (expired) => {
+  if (expired) {
+    void refreshCompartment();
+  }
 });
 </script>
 
@@ -195,11 +259,31 @@ onMounted(() => {
 
           <section
             v-if="reservationState === 'success' && reservation"
-            class="reservation-panel reservation-panel--success"
+            :class="[
+              'reservation-panel',
+              isReservationExpired
+                ? 'reservation-panel--expired'
+                : 'reservation-panel--success',
+            ]"
             aria-live="polite"
           >
-            <p class="screen-kicker">{{ t('reservation.successKicker') }}</p>
-            <h3>{{ t('reservation.successTitle') }}</h3>
+            <p class="screen-kicker">
+              {{
+                isReservationExpired
+                  ? t('reservation.expiredKicker')
+                  : t('reservation.successKicker')
+              }}
+            </p>
+            <h3>
+              {{
+                isReservationExpired
+                  ? t('reservation.expiredTitle')
+                  : t('reservation.successTitle')
+              }}
+            </h3>
+            <p v-if="isReservationExpired" class="reservation-panel__message">
+              {{ t('reservation.expiredMessage') }}
+            </p>
             <div class="reservation-grid">
               <div>
                 <span>{{ t('reservation.id') }}</span>
@@ -227,8 +311,12 @@ onMounted(() => {
               </div>
               <div>
                 <span>{{ t('reservation.status') }}</span>
-                <strong>
-                  {{ t(`reservationStatuses.${reservation.reservationStatus}`) }}
+                <strong
+                  :class="{
+                    'reservation-grid__status--expired': isReservationExpired,
+                  }"
+                >
+                  {{ t(`reservationStatuses.${displayedReservationStatus}`) }}
                 </strong>
               </div>
               <div>
@@ -308,6 +396,7 @@ onMounted(() => {
               color="primary"
               icon-right="password"
               :label="t('accessCode.openValidation')"
+              :disable="isReservationExpired"
               class="touch-button touch-button--primary"
               @click="openAccessCodeScreen"
             />

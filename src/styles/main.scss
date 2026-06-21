@@ -876,6 +876,13 @@ button,
     rgba(255, 255, 255, 0.07);
 }
 
+.reservation-panel--expired {
+  border-color: rgba(255, 170, 170, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 170, 170, 0.1), transparent),
+    rgba(255, 255, 255, 0.055);
+}
+
 .duration-picker {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -957,6 +964,10 @@ button,
   letter-spacing: 0.04em;
 }
 
+.reservation-grid__status--expired {
+  color: #ffaaaa;
+}
+
 .access-board {
   display: grid;
   width: min(980px, 100%);
@@ -1023,16 +1034,26 @@ button,
   display: grid;
   gap: 16px;
   padding: 20px;
-  border: 1px solid rgba(64, 217, 154, 0.26);
   border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(64, 217, 154, 0.12), transparent),
-    rgba(255, 255, 255, 0.07);
 }
 
 .access-result h3 {
   color: #ffffff;
   font-size: 1.35rem;
+}
+
+.access-result--success {
+  border: 1px solid rgba(64, 217, 154, 0.26);
+  background:
+    linear-gradient(135deg, rgba(64, 217, 154, 0.12), transparent),
+    rgba(255, 255, 255, 0.07);
+}
+
+.access-result--expired {
+  border: 1px solid rgba(255, 170, 170, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 170, 170, 0.1), transparent),
+    rgba(255, 255, 255, 0.055);
 }
 
 .detail-board__actions {
