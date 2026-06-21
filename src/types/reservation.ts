@@ -27,3 +27,17 @@ export interface Reservation {
   expiredAt: string | null;
   completedAt: string | null;
 }
+
+export interface KioskReservation {
+  reservationId: number;
+  reservationReference: string;
+  reservationStatus: ReservationStatus;
+  lockerCompartmentId: number;
+  lockerStationId: number;
+  compartmentNumber: number;
+  reservedFrom: string;
+  reservedUntil: string;
+  customerReference: string | null;
+  ticketCode: string;
+  accessCode: string;
+}

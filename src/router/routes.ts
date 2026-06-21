@@ -23,6 +23,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/CompartmentDetailPage.vue'),
   },
   {
+    path: '/access-code',
+    name: 'access-code',
+    component: () => import('@/pages/AccessCodePage.vue'),
+  },
+  {
     path: '/:catchAll(.*)*',
     redirect: '/',
   },

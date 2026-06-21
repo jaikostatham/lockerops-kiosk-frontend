@@ -16,6 +16,19 @@ export const httpClient = axios.create({
   },
 });
 
+function getResponseMessage(data: unknown): string {
+  if (
+    data &&
+    typeof data === 'object' &&
+    'message' in data &&
+    typeof data.message === 'string'
+  ) {
+    return data.message;
+  }
+
+  return '';
+}
+
 export function getApiErrorMessage(
   error: unknown,
   statusMessages: Partial<Record<number, string>> = {},
@@ -25,6 +38,12 @@ export function getApiErrorMessage(
 
     if (status && statusMessages[status]) {
       return statusMessages[status];
+    }
+
+    const responseMessage = getResponseMessage(error.response?.data);
+
+    if (responseMessage) {
+      return responseMessage;
     }
 
     if (status === 404) {

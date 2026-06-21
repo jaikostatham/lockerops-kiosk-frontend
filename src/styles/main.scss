@@ -296,6 +296,12 @@ button,
   line-height: 1.6;
 }
 
+.welcome-copy__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
 .welcome-copy__platform {
   max-width: 430px;
   margin: 22px 0 0;
@@ -944,6 +950,91 @@ button,
   font-size: 0.98rem;
 }
 
+.reservation-grid__code,
+.reservation-grid__access-code {
+  color: #81f6e6;
+  font-size: 1.18rem;
+  letter-spacing: 0.04em;
+}
+
+.access-board {
+  display: grid;
+  width: min(980px, 100%);
+  grid-template-columns: minmax(220px, 0.75fr) minmax(360px, 1.25fr);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 36px 100px rgba(0, 0, 0, 0.36);
+}
+
+.access-board__visual {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  color: #081114;
+  background:
+    linear-gradient(135deg, rgba(129, 246, 230, 0.92), rgba(245, 184, 61, 0.92)),
+    #81f6e6;
+}
+
+.access-board__visual .q-icon {
+  font-size: 7rem;
+}
+
+.access-board__content {
+  display: grid;
+  align-content: center;
+  gap: 24px;
+  padding: 44px;
+}
+
+.access-board__content h2,
+.access-board__message,
+.access-result h3 {
+  margin: 0;
+}
+
+.access-board__content h2 {
+  color: #ffffff;
+  font-size: 2.4rem;
+}
+
+.access-board__message {
+  color: rgba(247, 251, 255, 0.68);
+  font-size: 1.08rem;
+  line-height: 1.55;
+}
+
+.access-form {
+  display: grid;
+  gap: 16px;
+}
+
+.access-form__input {
+  min-height: 58px;
+  font-size: 1.35rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.access-result {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid rgba(64, 217, 154, 0.26);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(64, 217, 154, 0.12), transparent),
+    rgba(255, 255, 255, 0.07);
+}
+
+.access-result h3 {
+  color: #ffffff;
+  font-size: 1.35rem;
+}
+
 .detail-board__actions {
   display: flex;
   flex-wrap: wrap;
@@ -952,7 +1043,8 @@ button,
 
 @media (max-width: 980px) {
   .welcome-page__content,
-  .detail-board {
+  .detail-board,
+  .access-board {
     grid-template-columns: 1fr;
   }
 
@@ -972,6 +1064,10 @@ button,
   .detail-board__number {
     min-height: 220px;
     font-size: 5.6rem;
+  }
+
+  .access-board__visual {
+    min-height: 180px;
   }
 }
 
@@ -1055,6 +1151,10 @@ button,
   }
 
   .detail-board__content {
+    padding: 28px;
+  }
+
+  .access-board__content {
     padding: 28px;
   }
 }
