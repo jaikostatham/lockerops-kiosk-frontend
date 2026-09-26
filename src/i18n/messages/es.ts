@@ -59,6 +59,8 @@ export default {
     kicker: 'Reserva',
     title: 'Elige la duraci\u00f3n',
     instructions: 'Selecciona una duraci\u00f3n para reservar este locker.',
+    readOnlyTitle: 'Demo de consulta',
+    readOnlyMessage: 'Esta versi\u00f3n p\u00fablica permite consultar estaciones y lockers. Las reservas est\u00e1n desactivadas.',
     unavailableMessage: 'Este locker no est\u00e1 disponible para reservar.',
     durationAria: 'Duraci\u00f3n de la reserva',
     minutes: 'min',
