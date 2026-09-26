@@ -7,6 +7,7 @@ import { getLockerCompartment } from '@/api/lockerCompartmentsApi';
 import { getApiErrorMessage } from '@/api/httpClient';
 import { createReservation } from '@/api/reservationsApi';
 import AppHeader from '@/components/AppHeader.vue';
+import { RESERVATION_FLOW_ENABLED } from '@/config/apiConfig';
 import ErrorState from '@/components/ErrorState.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
@@ -61,7 +62,10 @@ const isAvailable = computed(
   () => compartment.value?.status === 'AVAILABLE',
 );
 const canCreateReservation = computed(
-  () => isAvailable.value && reservationState.value !== 'submitting',
+  () =>
+    RESERVATION_FLOW_ENABLED &&
+    isAvailable.value &&
+    reservationState.value !== 'submitting',
 );
 const displayedReservationStatus = computed(() => {
   if (!reservation.value) {
@@ -334,6 +338,16 @@ watch(isReservationExpired, (expired) => {
             </div>
           </section>
 
+          <section v-else-if="!RESERVATION_FLOW_ENABLED" class="reservation-panel">
+            <div>
+              <p class="screen-kicker">{{ t('reservation.kicker') }}</p>
+              <h3>{{ t('reservation.readOnlyTitle') }}</h3>
+              <p class="reservation-panel__message">
+                {{ t('reservation.readOnlyMessage') }}
+              </p>
+            </div>
+          </section>
+
           <section v-else class="reservation-panel">
             <div>
               <p class="screen-kicker">{{ t('reservation.kicker') }}</p>
@@ -391,7 +405,7 @@ watch(isReservationExpired, (expired) => {
               @click="goBack"
             />
             <q-btn
-              v-if="reservationState === 'success'"
+              v-if="RESERVATION_FLOW_ENABLED && reservationState === 'success'"
               unelevated
               color="primary"
               icon-right="password"
@@ -401,7 +415,7 @@ watch(isReservationExpired, (expired) => {
               @click="openAccessCodeScreen"
             />
             <q-btn
-              v-else
+              v-else-if="RESERVATION_FLOW_ENABLED"
               unelevated
               color="primary"
               icon-right="event_available"

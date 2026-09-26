@@ -59,6 +59,8 @@ export default {
     kicker: 'Reservation',
     title: 'Choose duration',
     instructions: 'Select a duration to reserve this locker.',
+    readOnlyTitle: 'Browse-only demo',
+    readOnlyMessage: 'This public version lets you browse stations and lockers. Reservations are disabled.',
     unavailableMessage: 'This locker is not available for reservation.',
     durationAria: 'Reservation duration',
     minutes: 'min',

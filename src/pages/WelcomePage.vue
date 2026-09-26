@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import { RESERVATION_FLOW_ENABLED } from '@/config/apiConfig';
 
 const router = useRouter();
 const { t } = useI18n();
@@ -45,6 +46,7 @@ function openAccessCode(): void {
             @click="startKiosk"
           />
           <q-btn
+            v-if="RESERVATION_FLOW_ENABLED"
             outline
             color="white"
             icon="password"
