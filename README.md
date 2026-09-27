@@ -90,6 +90,13 @@ En local, el flujo de prueba también llama a `POST /api/reservations` y
 la API solo publica el catálogo de estaciones y lockers. No cargues datos
 personales reales en un entorno público.
 
+## Flujo de trabajo Git
+
+El trabajo parte de `develop` actualizado y usa una rama semántica por tema. Las
+PR de trabajo se dirigen a `develop`; el usuario revisa y hace manualmente todos
+los merges. La promoción de `develop` a `main`, que despliega a producción, se
+realiza solo cuando el usuario la ordena expresamente.
+
 ## Compilar y CI
 
 ```bash
