@@ -45,10 +45,20 @@ $env:VITE_RESERVATION_FLOW_ENABLED = 'false'
 npm run dev
 ```
 
-Los perfiles `local` y `testing` usan la base `lockerops_test`. Sus datos solo se
-comparten cuando ambos se conectan a la misma instancia de PostgreSQL. Ahora el
-backend local usa PostgreSQL en este equipo y aún no hay una base de testing
-alojada.
+El frontend local llama al backend de IntelliJ con perfil `local`. El destino
+de su base depende de `DB_HOST` y `DB_NAME` en la configuración de ejecución;
+el backend usa `localhost:5432/lockerops_test` por defecto, pero IntelliJ puede
+sobrescribirlo. La API local devuelve las mismas tres estaciones de ejemplo que
+Neon testing, aunque eso no confirma que compartan servidor. Verifica esos dos
+valores en IntelliJ antes de asumir que los cambios locales aparecerán en
+testing. Los servicios públicos solo exponen el catálogo en modo lectura.
+Producción está aislada en Neon `lockerops_prod`.
+
+| Entorno | Rama | Frontend | API |
+| --- | --- | --- | --- |
+| Local | Rama de trabajo | `http://localhost:9000` | `http://localhost:8080` |
+| Testing | `develop` | <https://lockerops-kiosk-frontend-test.onrender.com> | <https://lockerops-platform-test.onrender.com> |
+| Producción | `main` | <https://lockerops-kiosk-frontend-prod.onrender.com> | <https://lockerops-platform-prod.onrender.com> |
 
 ## Configuración de API
 
@@ -58,9 +68,10 @@ Las variables `VITE_*` se incorporan al JavaScript que recibe el navegador, así
 son configuración pública y nunca deben contener contraseñas, tokens ni claves.
 
 El valor debe ser solo el origen HTTPS del backend (sin `/api`); ese origen también
-debe figurar en `CORS_ALLOWED_ORIGINS` del backend. Para producción, el backend
-usa el perfil `prod`, requiere secretos del proveedor y bloquea escrituras por
-defecto mientras la API no tenga autenticación.
+debe figurar en `CORS_ALLOWED_ORIGINS` del backend correspondiente. Los sitios
+de Render usan el backend del mismo entorno. Para producción, el backend usa el
+perfil `prod`, requiere secretos del proveedor y bloquea escrituras por defecto
+mientras la API no tenga autenticación.
 
 Los perfiles, las bases y las precauciones para sus datos están descritos en la
 [guía PostgreSQL del backend](https://github.com/jaikostatham/lockerops-platform/blob/develop/docs/postgresql-environments.md).
@@ -86,9 +97,9 @@ npm run build
 ```
 
 GitHub Actions ejecuta `npm ci` y `npm run build` en `develop`, `main` y los Pull
-Requests hacia esas ramas. Por ahora solo comprueba el código: no publica una web
-ni configura una URL pública. Las reservas se activan por defecto al ejecutar el
-servidor local de Vite y se desactivan por defecto en builds de producción. La
-variable `VITE_RESERVATION_FLOW_ENABLED` puede cambiar ese comportamiento; en un
-despliegue público se recomienda establecerla explícitamente en `false`. No contiene
-secretos.
+Requests hacia esas ramas. Solo comprueba el código; Render aloja los sitios
+estáticos conectados a `develop` (testing) y `main` (producción). Las reservas
+se activan por defecto al ejecutar el servidor local de Vite y se desactivan por
+defecto en builds de producción. La variable `VITE_RESERVATION_FLOW_ENABLED`
+puede cambiar ese comportamiento; en un despliegue público se recomienda
+establecerla explícitamente en `false`. No contiene secretos.
