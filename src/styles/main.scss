@@ -296,6 +296,12 @@ button,
   line-height: 1.6;
 }
 
+.welcome-copy__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
 .welcome-copy__platform {
   max-width: 430px;
   margin: 22px 0 0;
@@ -753,7 +759,7 @@ button,
 
 .detail-board {
   display: grid;
-  width: min(980px, 100%);
+  width: min(1100px, 100%);
   grid-template-columns: minmax(220px, 0.8fr) minmax(360px, 1.2fr);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -826,6 +832,230 @@ button,
   line-height: 1.55;
 }
 
+.reservation-panel {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(129, 246, 230, 0.08), transparent),
+    rgba(255, 255, 255, 0.06);
+}
+
+.reservation-panel h3,
+.reservation-panel p {
+  margin: 0;
+}
+
+.reservation-panel h3 {
+  color: #ffffff;
+  font-size: 1.35rem;
+}
+
+.reservation-panel__message {
+  margin-top: 8px;
+  color: rgba(247, 251, 255, 0.68);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.reservation-panel__error {
+  padding: 14px;
+  border: 1px solid rgba(255, 107, 107, 0.24);
+  border-radius: 8px;
+  color: #ffaaaa;
+  background: rgba(255, 107, 107, 0.1);
+  font-weight: 800;
+}
+
+.reservation-panel--success {
+  border-color: rgba(64, 217, 154, 0.26);
+  background:
+    linear-gradient(135deg, rgba(64, 217, 154, 0.12), transparent),
+    rgba(255, 255, 255, 0.07);
+}
+
+.reservation-panel--expired {
+  border-color: rgba(255, 170, 170, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 170, 170, 0.1), transparent),
+    rgba(255, 255, 255, 0.055);
+}
+
+.duration-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.duration-picker__button {
+  min-height: 70px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(247, 251, 255, 0.72);
+  background: rgba(255, 255, 255, 0.07);
+  text-transform: none;
+}
+
+.duration-picker__button strong,
+.duration-picker__button span {
+  display: block;
+}
+
+.duration-picker__button strong {
+  color: #ffffff;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.duration-picker__button span {
+  margin-top: 4px;
+  font-weight: 850;
+}
+
+.duration-picker__button--active {
+  border-color: rgba(129, 246, 230, 0.5);
+  color: #081114;
+  background: linear-gradient(135deg, #81f6e6, #f5b83d);
+}
+
+.duration-picker__button--active strong {
+  color: #081114;
+}
+
+.reservation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.reservation-grid div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.reservation-grid span,
+.reservation-grid strong {
+  display: block;
+}
+
+.reservation-grid span {
+  color: rgba(247, 251, 255, 0.58);
+  font-size: 0.8rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.reservation-grid strong {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  color: #ffffff;
+  font-size: 0.98rem;
+}
+
+.reservation-grid__code,
+.reservation-grid__access-code {
+  color: #81f6e6;
+  font-size: 1.18rem;
+  letter-spacing: 0.04em;
+}
+
+.reservation-grid__status--expired {
+  color: #ffaaaa;
+}
+
+.access-board {
+  display: grid;
+  width: min(980px, 100%);
+  grid-template-columns: minmax(220px, 0.75fr) minmax(360px, 1.25fr);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 36px 100px rgba(0, 0, 0, 0.36);
+}
+
+.access-board__visual {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  color: #081114;
+  background:
+    linear-gradient(135deg, rgba(129, 246, 230, 0.92), rgba(245, 184, 61, 0.92)),
+    #81f6e6;
+}
+
+.access-board__visual .q-icon {
+  font-size: 7rem;
+}
+
+.access-board__content {
+  display: grid;
+  align-content: center;
+  gap: 24px;
+  padding: 44px;
+}
+
+.access-board__content h2,
+.access-board__message,
+.access-result h3 {
+  margin: 0;
+}
+
+.access-board__content h2 {
+  color: #ffffff;
+  font-size: 2.4rem;
+}
+
+.access-board__message {
+  color: rgba(247, 251, 255, 0.68);
+  font-size: 1.08rem;
+  line-height: 1.55;
+}
+
+.access-form {
+  display: grid;
+  gap: 16px;
+}
+
+.access-form__input {
+  min-height: 58px;
+  font-size: 1.35rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.access-result {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.access-result h3 {
+  color: #ffffff;
+  font-size: 1.35rem;
+}
+
+.access-result--success {
+  border: 1px solid rgba(64, 217, 154, 0.26);
+  background:
+    linear-gradient(135deg, rgba(64, 217, 154, 0.12), transparent),
+    rgba(255, 255, 255, 0.07);
+}
+
+.access-result--expired {
+  border: 1px solid rgba(255, 170, 170, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 170, 170, 0.1), transparent),
+    rgba(255, 255, 255, 0.055);
+}
+
 .detail-board__actions {
   display: flex;
   flex-wrap: wrap;
@@ -834,7 +1064,8 @@ button,
 
 @media (max-width: 980px) {
   .welcome-page__content,
-  .detail-board {
+  .detail-board,
+  .access-board {
     grid-template-columns: 1fr;
   }
 
@@ -854,6 +1085,10 @@ button,
   .detail-board__number {
     min-height: 220px;
     font-size: 5.6rem;
+  }
+
+  .access-board__visual {
+    min-height: 180px;
   }
 }
 
@@ -931,7 +1166,16 @@ button,
     grid-template-columns: 1fr;
   }
 
+  .duration-picker,
+  .reservation-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .detail-board__content {
+    padding: 28px;
+  }
+
+  .access-board__content {
     padding: 28px;
   }
 }

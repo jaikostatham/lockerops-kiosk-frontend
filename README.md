@@ -1,104 +1,105 @@
-# LockerOps Kiosk Frontend
+# LockerOps Kiosk
 
-MVP provisional de frontend para `LockerOps Platform`, construido como una interfaz de kiosco tactil de solo lectura.
+Interfaz de quiosco táctil para consultar estaciones de lockers y la disponibilidad
+de sus compartimentos, con un flujo de reserva de prueba en local. La versión pública
+del portfolio es de solo consulta; no procesa pagos.
 
-## Stack
+El backend relacionado vive en
+[LockerOps Platform](https://github.com/jaikostatham/lockerops-platform).
 
-- Vue 3
-- Quasar Framework
-- TypeScript
-- Vue Router
-- Vue I18n
-- Axios
-- Vite
+## Qué muestra
 
-## Configuracion
+- Selección de estaciones y vista de compartimentos por estado.
+- Detalle de un compartimento.
+- Textos en español e inglés, con español como idioma inicial.
+- Diseño pensado para una pantalla de quiosco táctil.
 
-En desarrollo se recomienda mantener vacia la URL base publica para usar el proxy de Vite:
+## Tecnologías
 
-```bash
-VITE_API_BASE_URL=
-VITE_DEV_PROXY_TARGET=http://localhost:8080
+Vue 3 · Quasar · TypeScript · Vue Router · Vue I18n · Axios · Vite
+
+```mermaid
+flowchart LR
+  U[Usuario del kiosk] --> V[Vue + Quasar]
+  V --> A[Cliente Axios]
+  A -->|GET /api| B[LockerOps Platform]
+  B --> D[(PostgreSQL)]
 ```
-
-El archivo `.env.example` incluye estos valores para desarrollo local.
-
-Si `VITE_API_BASE_URL` queda vacio, el servidor de desarrollo usa un proxy interno de Vite desde `/api` hacia `VITE_DEV_PROXY_TARGET`. Esto evita CORS sin tocar el backend. Si defines `VITE_API_BASE_URL=http://localhost:8080`, el navegador llamara directamente al backend y el backend debera permitir CORS desde `http://localhost:9000`.
 
 ## Ejecutar en local
 
-Instala dependencias:
+Requisitos: Node.js 24.21.0 y el backend disponible en
+`http://localhost:8080`.
 
 ```bash
-npm install
-```
-
-Arranca el frontend:
-
-```bash
+npm ci
 npm run dev
 ```
 
-La aplicacion queda disponible normalmente en:
+Vite sirve la interfaz en `http://localhost:9000` y reenvía `/api` al backend
+local. Para probar con el backend en el puerto `8081`:
 
-```bash
-http://localhost:9000
+```powershell
+$env:VITE_DEV_PROXY_TARGET = 'http://localhost:8081'
+$env:VITE_RESERVATION_FLOW_ENABLED = 'false'
+npm run dev
 ```
 
-Compilar:
+El frontend local llama al backend de IntelliJ con perfil `local`. El destino
+de su base depende de `DB_HOST` y `DB_NAME` en la configuración de ejecución;
+el backend usa `localhost:5432/lockerops_test` por defecto, pero IntelliJ puede
+sobrescribirlo. La API local devuelve las mismas tres estaciones de ejemplo que
+Neon testing, aunque eso no confirma que compartan servidor. Verifica esos dos
+valores en IntelliJ antes de asumir que los cambios locales aparecerán en
+testing. Los servicios públicos solo exponen el catálogo en modo lectura.
+Producción está aislada en Neon `lockerops_prod`.
 
-```bash
-npm run build
-```
+| Entorno | Rama | Frontend | API |
+| --- | --- | --- | --- |
+| Local | Rama de trabajo | `http://localhost:9000` | `http://localhost:8080` |
+| Testing | `develop` | <https://lockerops-kiosk-frontend-test.onrender.com> | <https://lockerops-platform-test.onrender.com> |
+| Producción | `main` | <https://lockerops-kiosk-frontend-prod.onrender.com> | <https://lockerops-platform-prod.onrender.com> |
 
-## Backend esperado
+## Configuración de API
 
-Backend local:
+En desarrollo, deja `VITE_API_BASE_URL` vacía para usar el proxy de Vite. En un
+frontend desplegado, `VITE_API_BASE_URL` puede apuntar al origen HTTPS de la API.
+Las variables `VITE_*` se incorporan al JavaScript que recibe el navegador, así que
+son configuración pública y nunca deben contener contraseñas, tokens ni claves.
 
-```bash
-http://localhost:8080
-```
+El valor debe ser solo el origen HTTPS del backend (sin `/api`); ese origen también
+debe figurar en `CORS_ALLOWED_ORIGINS` del backend correspondiente. Los sitios
+de Render usan el backend del mismo entorno. Para producción, el backend usa el
+perfil `prod`, requiere secretos del proveedor y bloquea escrituras por defecto
+mientras la API no tenga autenticación.
 
-Repositorio backend inspeccionado en modo lectura:
+Los perfiles, las bases y las precauciones para sus datos están descritos en la
+[guía PostgreSQL del backend](https://github.com/jaikostatham/lockerops-platform/blob/develop/docs/postgresql-environments.md).
 
-```bash
-../lockerops-platform
-```
+## Contrato consumido
 
-## Endpoints consumidos
-
-Este frontend solo consume endpoints de lectura:
+Todas las versiones usan estas rutas de consulta:
 
 - `GET /api/locker-stations`
 - `GET /api/locker-stations/{id}`
 - `GET /api/locker-stations/{lockerStationId}/compartments`
 - `GET /api/locker-compartments/{id}`
 
-No se implementan operaciones de creacion, edicion, borrado, pagos, login, reservas falsas, codigos de acceso ni recibos.
+En local, el flujo de prueba también llama a `POST /api/reservations` y
+`POST /api/access-codes/validate`. En los builds públicos se desactiva ese flujo y
+la API solo publica el catálogo de estaciones y lockers. No cargues datos
+personales reales en un entorno público.
 
-## Pantallas
+## Compilar y CI
 
-- `WelcomePage`: entrada full-screen para el kiosco.
-- `StationSelectionPage`: seleccion visual de estaciones.
-- `CompartmentGridPage`: grid tactil de compartimentos por estacion.
-- `CompartmentDetailPage`: detalle read-only del compartimento seleccionado.
+```bash
+npm run build
+```
 
-## Internacionalizacion
-
-La interfaz usa `vue-i18n` con Espanol como idioma por defecto e Ingles como idioma alternativo. La seleccion del usuario se guarda en `localStorage` con la clave `lockerops.locale`.
-
-## Preparado para fases futuras
-
-La estructura deja separadas las capas de UI, rutas, tipos y API para evolucionar despues hacia:
-
-- Reservations
-- PricingPlan
-- Payment
-- AccessCode
-- Receipt
-
-## Nota CORS
-
-Si el backend rechaza peticiones desde `http://localhost:9000`, puede requerir una configuracion CORS temporal en el backend para desarrollo. Este frontend no modifica el backend.
-
-Durante la verificacion local se detecto que el backend respondia correctamente desde el sistema, pero la respuesta directa al navegador no incluia cabeceras CORS y el preflight `OPTIONS` devolvia `403`. Por eso se deja configurado el proxy de desarrollo de Vite.
+GitHub Actions ejecuta `npm ci` y `npm run build` en `develop`, `main` y los Pull
+Requests hacia esas ramas. Solo comprueba el código; Render aloja los sitios
+estáticos conectados a `develop` (testing) y `main` (producción). Las reservas
+se activan por defecto al ejecutar el servidor local de Vite y se desactivan por
+defecto en builds de producción. La variable `VITE_RESERVATION_FLOW_ENABLED`
+puede cambiar ese comportamiento; en un despliegue público se recomienda
+establecerla explícitamente en `false`. No contiene secretos.

@@ -3,12 +3,17 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import { RESERVATION_FLOW_ENABLED } from '@/config/apiConfig';
 
 const router = useRouter();
 const { t } = useI18n();
 
 function startKiosk(): void {
   void router.push({ name: 'stations' });
+}
+
+function openAccessCode(): void {
+  void router.push({ name: 'access-code' });
 }
 </script>
 
@@ -31,14 +36,25 @@ function startKiosk(): void {
           {{ t('welcome.body') }}
         </p>
 
-        <q-btn
-          unelevated
-          color="primary"
-          icon-right="arrow_forward"
-          :label="t('common.start')"
-          class="touch-button touch-button--primary"
-          @click="startKiosk"
-        />
+        <div class="welcome-copy__actions">
+          <q-btn
+            unelevated
+            color="primary"
+            icon-right="arrow_forward"
+            :label="t('common.start')"
+            class="touch-button touch-button--primary"
+            @click="startKiosk"
+          />
+          <q-btn
+            v-if="RESERVATION_FLOW_ENABLED"
+            outline
+            color="white"
+            icon="password"
+            :label="t('accessCode.haveCode')"
+            class="touch-button touch-button--secondary"
+            @click="openAccessCode"
+          />
+        </div>
 
         <p class="welcome-copy__platform">{{ t('welcome.platform') }}</p>
       </div>

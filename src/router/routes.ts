@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 
+import { RESERVATION_FLOW_ENABLED } from '@/config/apiConfig';
+
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -23,6 +25,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/CompartmentDetailPage.vue'),
   },
   {
+    path: '/access-code',
+    name: 'access-code',
+    component: () => import('@/pages/AccessCodePage.vue'),
+  },
+  {
     path: '/:catchAll(.*)*',
     redirect: '/',
   },
@@ -31,6 +38,12 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach((to) => {
+  if (!RESERVATION_FLOW_ENABLED && to.name === 'access-code') {
+    return { name: 'welcome' };
+  }
 });
 
 export default router;
