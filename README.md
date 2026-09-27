@@ -28,7 +28,7 @@ flowchart LR
 
 ## Ejecutar en local
 
-Requisitos: Node.js 20.19 o posterior, o Node.js 22.12 o posterior, y el backend disponible en
+Requisitos: Node.js 24.21.0 y el backend disponible en
 `http://localhost:8080`.
 
 ```bash
