@@ -28,31 +28,7 @@ flowchart LR
   B --> D[(PostgreSQL)]
 ```
 
-## Ejecutar en local
-
-Requisitos: Node.js 24.21.0 y el backend disponible en
-`http://localhost:8080`.
-
-```bash
-npm ci
-npm run dev
-```
-
-Vite sirve la interfaz en `http://localhost:9000` y reenvía `/api` al backend
-local. Si el backend usa otro puerto, configura `VITE_DEV_PROXY_TARGET` en la
-terminal antes de iniciar Vite:
-
-```powershell
-$env:VITE_DEV_PROXY_TARGET = 'http://localhost:8081'
-npm run dev
-```
-
-En desarrollo, `VITE_API_BASE_URL` puede dejarse vacía para usar el proxy de
-Vite. Las variables `VITE_*` se incorporan al JavaScript que recibe el
-navegador; úsalas solo para configuración pública, nunca para contraseñas,
-tokens ni claves.
-
-## Contrato consumido
+## Integración con la API
 
 El catálogo consulta estas rutas:
 
@@ -64,10 +40,3 @@ El catálogo consulta estas rutas:
 El flujo de reserva local también puede usar `POST /api/reservations` y
 `POST /api/access-codes/validate`. En la demo pública, la API limita las
 operaciones al catálogo independientemente de la opción visual del frontend.
-Usa solo datos ficticios en entornos públicos.
-
-## Compilar
-
-```bash
-npm run build
-```
