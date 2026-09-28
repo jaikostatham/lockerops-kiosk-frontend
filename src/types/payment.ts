@@ -6,7 +6,7 @@ import type {
 export type PaymentStatus = 'APPROVED' | 'DECLINED';
 
 export interface SimulatePaymentRequest {
-  reservationId: number;
+  reservationReference: string;
   outcome: PaymentStatus;
 }
 

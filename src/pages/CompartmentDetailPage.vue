@@ -295,7 +295,7 @@ async function processSimulatedPayment(outcome: PaymentStatus): Promise<void> {
 
   try {
     const result = await simulatePayment({
-      reservationId: reservation.value.id,
+      reservationReference: reservation.value.reservationReference,
       outcome,
     });
 
