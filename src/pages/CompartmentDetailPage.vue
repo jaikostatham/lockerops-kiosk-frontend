@@ -4,23 +4,41 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import { getLockerCompartment } from '@/api/lockerCompartmentsApi';
-import { getApiErrorMessage } from '@/api/httpClient';
+import {
+  getApiErrorCode,
+  getApiErrorMessage,
+} from '@/api/httpClient';
+import { simulatePayment } from '@/api/paymentsApi';
 import { createReservation } from '@/api/reservationsApi';
 import AppHeader from '@/components/AppHeader.vue';
-import { RESERVATION_FLOW_ENABLED } from '@/config/apiConfig';
 import ErrorState from '@/components/ErrorState.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
+import { RESERVATION_FLOW_ENABLED } from '@/config/apiConfig';
 import type { LockerCompartment } from '@/types/lockerCompartment';
-import type { KioskReservation } from '@/types/reservation';
+import type {
+  PaymentStatus,
+  SimulatedPaymentResponse,
+} from '@/types/payment';
+import type {
+  Reservation,
+  ReservationStatus,
+  ReservationTicket,
+} from '@/types/reservation';
+import { isPastDateTime } from '@/utils/dateTime';
 import {
   getCompartmentSizeLabelKey,
   getCompartmentStatusLabelKey,
 } from '@/utils/lockerLabels';
-import { isPastDateTime } from '@/utils/dateTime';
 
 type LoadState = 'loading' | 'ready' | 'error';
-type ReservationState = 'idle' | 'submitting' | 'success' | 'error';
+type ReservationState =
+  | 'idle'
+  | 'submitting'
+  | 'pendingPayment'
+  | 'confirmed'
+  | 'error';
+type PaymentState = 'idle' | 'processing' | 'declined' | 'error';
 
 const durationOptions = [30, 60, 120, 240] as const;
 
@@ -33,7 +51,11 @@ const errorMessage = ref('');
 const selectedDuration = ref<number>(60);
 const reservationState = ref<ReservationState>('idle');
 const reservationErrorMessage = ref('');
-const reservation = ref<KioskReservation | null>(null);
+const reservation = ref<Reservation | null>(null);
+const paymentState = ref<PaymentState>('idle');
+const paymentErrorMessage = ref('');
+const payment = ref<SimulatedPaymentResponse | null>(null);
+const processingOutcome = ref<PaymentStatus | null>(null);
 const currentTimestamp = ref(Date.now());
 let currentTimeIntervalId: number | undefined;
 
@@ -65,25 +87,78 @@ const canCreateReservation = computed(
   () =>
     RESERVATION_FLOW_ENABLED &&
     isAvailable.value &&
+    !reservation.value &&
     reservationState.value !== 'submitting',
 );
-const displayedReservationStatus = computed(() => {
-  if (!reservation.value) {
-    return null;
+const ticket = computed<ReservationTicket | null>(
+  () => payment.value?.ticket ?? null,
+);
+const isPendingPayment = computed(
+  () =>
+    reservation.value?.status === 'PENDING_PAYMENT' &&
+    reservationState.value === 'pendingPayment',
+);
+const isPaymentWindowExpired = computed(() => {
+  const paymentExpiresAt = reservation.value?.paymentExpiresAt;
+
+  if (
+    reservationState.value === 'pendingPayment' &&
+    reservation.value?.status === 'EXPIRED'
+  ) {
+    return true;
+  }
+
+  return Boolean(
+    isPendingPayment.value &&
+      paymentExpiresAt &&
+      isPastDateTime(paymentExpiresAt, currentTimestamp.value),
+  );
+});
+const displayedReservationStatus = computed<ReservationStatus | null>(() => {
+  if (isPaymentWindowExpired.value) {
+    return 'EXPIRED';
   }
 
   if (
-    reservation.value.reservationStatus === 'EXPIRED' ||
-    isPastDateTime(reservation.value.reservedUntil, currentTimestamp.value)
+    ticket.value &&
+    isPastDateTime(ticket.value.reservedUntil, currentTimestamp.value)
   ) {
     return 'EXPIRED';
   }
 
-  return reservation.value.reservationStatus;
+  return payment.value?.reservationStatus ?? reservation.value?.status ?? null;
 });
 const isReservationExpired = computed(
   () => displayedReservationStatus.value === 'EXPIRED',
 );
+const canSimulatePayment = computed(
+  () =>
+    isPendingPayment.value &&
+    !isPaymentWindowExpired.value &&
+    paymentState.value !== 'processing',
+);
+const paymentTimeRemaining = computed(() => {
+  const paymentExpiresAt = reservation.value?.paymentExpiresAt;
+
+  if (!paymentExpiresAt) {
+    return '';
+  }
+
+  const expiresAt = new Date(paymentExpiresAt).getTime();
+
+  if (Number.isNaN(expiresAt)) {
+    return '';
+  }
+
+  const remainingSeconds = Math.max(
+    0,
+    Math.ceil((expiresAt - currentTimestamp.value) / 1000),
+  );
+  const minutes = Math.floor(remainingSeconds / 60);
+  const seconds = remainingSeconds % 60;
+
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+});
 
 async function loadCompartment(): Promise<void> {
   if (!Number.isFinite(compartmentId.value) || compartmentId.value <= 0) {
@@ -94,9 +169,7 @@ async function loadCompartment(): Promise<void> {
 
   loadState.value = 'loading';
   errorMessage.value = '';
-  reservationState.value = 'idle';
-  reservationErrorMessage.value = '';
-  reservation.value = null;
+  resetReservationFlow();
 
   try {
     compartment.value = await getLockerCompartment(compartmentId.value);
@@ -105,6 +178,16 @@ async function loadCompartment(): Promise<void> {
     errorMessage.value = getApiErrorMessage(error);
     loadState.value = 'error';
   }
+}
+
+function resetReservationFlow(): void {
+  reservationState.value = 'idle';
+  reservationErrorMessage.value = '';
+  reservation.value = null;
+  paymentState.value = 'idle';
+  paymentErrorMessage.value = '';
+  payment.value = null;
+  processingOutcome.value = null;
 }
 
 async function refreshCompartment(): Promise<void> {
@@ -139,8 +222,8 @@ function openAccessCodeScreen(): void {
   void router.push({
     name: 'access-code',
     query: {
-      ticketCode: reservation.value?.ticketCode || undefined,
-      accessCode: reservation.value?.accessCode || undefined,
+      ticketCode: ticket.value?.ticketCode || undefined,
+      accessCode: ticket.value?.accessCode || undefined,
     },
   });
 }
@@ -165,6 +248,13 @@ function formatDateTime(value: string): string {
   }).format(date);
 }
 
+function formatMoney(amountMinor: number, currency: string): string {
+  return new Intl.NumberFormat(locale.value === 'es' ? 'es-ES' : 'en-US', {
+    style: 'currency',
+    currency,
+  }).format(amountMinor / 100);
+}
+
 async function confirmReservation(): Promise<void> {
   if (!compartment.value || !canCreateReservation.value) {
     return;
@@ -183,7 +273,7 @@ async function confirmReservation(): Promise<void> {
       ...compartment.value,
       status: 'RESERVED',
     };
-    reservationState.value = 'success';
+    reservationState.value = 'pendingPayment';
   } catch (error) {
     reservationErrorMessage.value = getApiErrorMessage(error, {
       400: t('reservation.errors.invalidRequest'),
@@ -194,11 +284,72 @@ async function confirmReservation(): Promise<void> {
   }
 }
 
+async function processSimulatedPayment(outcome: PaymentStatus): Promise<void> {
+  if (!reservation.value || !canSimulatePayment.value) {
+    return;
+  }
+
+  paymentState.value = 'processing';
+  processingOutcome.value = outcome;
+  paymentErrorMessage.value = '';
+
+  try {
+    const result = await simulatePayment({
+      reservationId: reservation.value.id,
+      outcome,
+    });
+
+    payment.value = result;
+
+    if (result.paymentStatus === 'DECLINED') {
+      paymentState.value = 'declined';
+      return;
+    }
+
+    if (!result.ticket) {
+      paymentState.value = 'error';
+      paymentErrorMessage.value = t('payment.errors.missingTicket');
+      return;
+    }
+
+    reservation.value = {
+      ...reservation.value,
+      status: result.reservationStatus,
+      reservedFrom: result.ticket.reservedFrom,
+      reservedUntil: result.ticket.reservedUntil,
+    };
+    paymentState.value = 'idle';
+    reservationState.value = 'confirmed';
+  } catch (error) {
+    const errorCode = getApiErrorCode(error);
+
+    if (String(errorCode) === '6002') {
+      paymentErrorMessage.value = t('payment.errors.expired');
+      reservation.value = {
+        ...reservation.value,
+        status: 'EXPIRED',
+      };
+    } else if (String(errorCode) === '6001') {
+      paymentErrorMessage.value = t('payment.errors.notPending');
+    } else {
+      paymentErrorMessage.value = getApiErrorMessage(error, {
+        400: t('payment.errors.invalidRequest'),
+        404: t('payment.errors.notFound'),
+        409: t('payment.errors.conflict'),
+      });
+    }
+
+    paymentState.value = 'error';
+  } finally {
+    processingOutcome.value = null;
+  }
+}
+
 onMounted(() => {
   void loadCompartment();
   currentTimeIntervalId = window.setInterval(() => {
     currentTimestamp.value = Date.now();
-  }, 15000);
+  }, 1000);
   window.addEventListener('focus', refreshActiveCompartment);
   document.addEventListener('visibilitychange', handleVisibilityChange);
 });
@@ -262,7 +413,7 @@ watch(isReservationExpired, (expired) => {
           <StatusBadge :status="compartment.status" domain="compartment" />
 
           <section
-            v-if="reservationState === 'success' && reservation"
+            v-if="reservationState === 'confirmed' && ticket"
             :class="[
               'reservation-panel',
               isReservationExpired
@@ -291,27 +442,27 @@ watch(isReservationExpired, (expired) => {
             <div class="reservation-grid">
               <div>
                 <span>{{ t('reservation.id') }}</span>
-                <strong>{{ reservation.reservationId }}</strong>
+                <strong>{{ ticket.reservationId }}</strong>
               </div>
               <div>
                 <span>{{ t('reservation.reference') }}</span>
-                <strong>{{ reservation.reservationReference }}</strong>
+                <strong>{{ ticket.reservationReference }}</strong>
               </div>
               <div>
                 <span>{{ t('reservation.ticketCode') }}</span>
                 <strong class="reservation-grid__code">
-                  {{ reservation.ticketCode }}
+                  {{ ticket.ticketCode }}
                 </strong>
               </div>
               <div>
                 <span>{{ t('reservation.accessCode') }}</span>
                 <strong class="reservation-grid__access-code">
-                  {{ reservation.accessCode }}
+                  {{ ticket.accessCode }}
                 </strong>
               </div>
               <div>
                 <span>{{ t('reservation.lockerNumber') }}</span>
-                <strong>{{ reservation.compartmentNumber }}</strong>
+                <strong>{{ ticket.compartmentNumber }}</strong>
               </div>
               <div>
                 <span>{{ t('reservation.status') }}</span>
@@ -325,20 +476,105 @@ watch(isReservationExpired, (expired) => {
               </div>
               <div>
                 <span>{{ t('reservation.reservedFrom') }}</span>
-                <strong>{{ formatDateTime(reservation.reservedFrom) }}</strong>
+                <strong>{{ formatDateTime(ticket.reservedFrom) }}</strong>
               </div>
               <div>
                 <span>{{ t('reservation.reservedUntil') }}</span>
-                <strong>{{ formatDateTime(reservation.reservedUntil) }}</strong>
+                <strong>{{ formatDateTime(ticket.reservedUntil) }}</strong>
               </div>
-              <div v-if="reservation.customerReference">
+              <div v-if="ticket.customerReference">
                 <span>{{ t('reservation.customerReference') }}</span>
-                <strong>{{ reservation.customerReference }}</strong>
+                <strong>{{ ticket.customerReference }}</strong>
               </div>
             </div>
           </section>
 
-          <section v-else-if="!RESERVATION_FLOW_ENABLED" class="reservation-panel">
+          <section
+            v-else-if="reservation && reservationState === 'pendingPayment'"
+            :class="[
+              'reservation-panel',
+              isPaymentWindowExpired
+                ? 'reservation-panel--expired'
+                : paymentState === 'declined'
+                  ? 'reservation-panel--declined'
+                  : 'reservation-panel--payment',
+            ]"
+            aria-live="polite"
+          >
+            <p class="screen-kicker">{{ t('payment.kicker') }}</p>
+            <h3>
+              {{
+                isPaymentWindowExpired
+                  ? t('payment.expiredTitle')
+                  : paymentState === 'declined'
+                    ? t('payment.declinedTitle')
+                    : t('payment.title')
+              }}
+            </h3>
+            <p class="reservation-panel__message">
+              {{
+                isPaymentWindowExpired
+                  ? t('payment.expiredMessage')
+                  : paymentState === 'declined'
+                    ? t('payment.declinedMessage')
+                    : t('payment.instructions')
+              }}
+            </p>
+
+            <div class="reservation-grid">
+              <div>
+                <span>{{ t('reservation.id') }}</span>
+                <strong>{{ reservation.id }}</strong>
+              </div>
+              <div>
+                <span>{{ t('reservation.reference') }}</span>
+                <strong>{{ reservation.reservationReference }}</strong>
+              </div>
+              <div>
+                <span>{{ t('payment.amount') }}</span>
+                <strong class="reservation-grid__price">
+                  {{ formatMoney(reservation.amountMinor, reservation.currency) }}
+                </strong>
+              </div>
+              <div>
+                <span>{{ t('reservation.status') }}</span>
+                <strong
+                  :class="{
+                    'reservation-grid__status--expired': isPaymentWindowExpired,
+                  }"
+                >
+                  {{ t(`reservationStatuses.${displayedReservationStatus}`) }}
+                </strong>
+              </div>
+              <div v-if="reservation.paymentExpiresAt">
+                <span>{{ t('payment.deadline') }}</span>
+                <strong>{{ formatDateTime(reservation.paymentExpiresAt) }}</strong>
+              </div>
+              <div v-if="paymentTimeRemaining && !isPaymentWindowExpired">
+                <span>{{ t('payment.timeRemaining') }}</span>
+                <strong class="reservation-grid__countdown">
+                  {{ paymentTimeRemaining }}
+                </strong>
+              </div>
+              <div v-if="payment">
+                <span>{{ t('payment.reference') }}</span>
+                <strong>{{ payment.paymentReference }}</strong>
+              </div>
+            </div>
+
+            <p
+              v-if="paymentState === 'error'"
+              class="reservation-panel__error"
+              role="alert"
+            >
+              {{ paymentErrorMessage }}
+            </p>
+          </section>
+
+          <section
+            v-else-if="!RESERVATION_FLOW_ENABLED"
+            class="reservation-panel"
+          >
             <div>
               <p class="screen-kicker">{{ t('reservation.kicker') }}</p>
               <h3>{{ t('reservation.readOnlyTitle') }}</h3>
@@ -405,7 +641,11 @@ watch(isReservationExpired, (expired) => {
               @click="goBack"
             />
             <q-btn
-              v-if="RESERVATION_FLOW_ENABLED && reservationState === 'success'"
+              v-if="
+                RESERVATION_FLOW_ENABLED &&
+                reservationState === 'confirmed' &&
+                ticket
+              "
               unelevated
               color="primary"
               icon-right="password"
@@ -414,8 +654,37 @@ watch(isReservationExpired, (expired) => {
               class="touch-button touch-button--primary"
               @click="openAccessCodeScreen"
             />
+            <template
+              v-else-if="
+                RESERVATION_FLOW_ENABLED &&
+                reservationState === 'pendingPayment' &&
+                reservation &&
+                !isPaymentWindowExpired
+              "
+            >
+              <q-btn
+                outline
+                color="negative"
+                icon="credit_card_off"
+                :label="t('payment.decline')"
+                :disable="!canSimulatePayment"
+                :loading="processingOutcome === 'DECLINED'"
+                class="touch-button touch-button--secondary"
+                @click="processSimulatedPayment('DECLINED')"
+              />
+              <q-btn
+                unelevated
+                color="primary"
+                icon-right="credit_card"
+                :label="t('payment.approve')"
+                :disable="!canSimulatePayment"
+                :loading="processingOutcome === 'APPROVED'"
+                class="touch-button touch-button--primary"
+                @click="processSimulatedPayment('APPROVED')"
+              />
+            </template>
             <q-btn
-              v-else-if="RESERVATION_FLOW_ENABLED"
+              v-else-if="RESERVATION_FLOW_ENABLED && !reservation"
               unelevated
               color="primary"
               icon-right="event_available"
