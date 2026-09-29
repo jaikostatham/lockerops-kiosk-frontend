@@ -8,4 +8,4 @@ const reservationFlowSetting =
 
 export const RESERVATION_FLOW_ENABLED = reservationFlowSetting
   ? reservationFlowSetting === 'true'
-  : import.meta.env.DEV;
+  : true;

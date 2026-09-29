@@ -21,6 +21,9 @@ export interface Reservation {
   reservedFrom: string;
   reservedUntil: string;
   customerReference: string | null;
+  amountMinor: number;
+  currency: string;
+  paymentExpiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   cancelledAt: string | null;
@@ -28,7 +31,7 @@ export interface Reservation {
   completedAt: string | null;
 }
 
-export interface KioskReservation {
+export interface ReservationTicket {
   reservationId: number;
   reservationReference: string;
   reservationStatus: ReservationStatus;
